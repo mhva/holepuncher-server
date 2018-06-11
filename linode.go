@@ -203,7 +203,7 @@ func (e *LinodeAPI) NewInstanceRebuilder(id int) *LinodeInstanceRebuilder {
 func (e *LinodeAPI) BootInstance(linodeID int) error {
 	var dummy map[string]interface{}
 	endpoint := fmt.Sprintf("/linode/instances/%d/boot", linodeID)
-	result := linodePOST(endpoint, e.authedR().SetBody(&dummy))
+	result := linodePOST(endpoint, e.authedR().SetResult(&dummy))
 
 	if result.err == nil {
 		return nil
@@ -216,7 +216,7 @@ func (e *LinodeAPI) DeleteInstance(linodeID int) error {
 	var dummy map[string]interface{}
 
 	endpoint := fmt.Sprintf("/linode/instances/%d", linodeID)
-	client := e.authedR().SetBody(&dummy)
+	client := e.authedR().SetResult(&dummy)
 	result := linodeDELETE(endpoint, client)
 
 	if result.err == nil {
