@@ -262,9 +262,9 @@ func (p *protobufLinode) awaitUntilRunning(api *LinodeAPI, instanceID int) (*Lin
 	attempt, maxAttempts := 0, 20
 	delay := 7 * time.Second
 
-	// Wait a little, so operations like rebuild have chance to start. Not
-	// waiting here results in immediate "running" status.
-	time.Sleep(5 * time.Second)
+	// Wait a little, so operations like create or rebuild have chance to do
+	// some work.
+	time.Sleep(delay * 2)
 
 	for {
 		instance, err := api.QueryLinode(instanceID)
