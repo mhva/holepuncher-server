@@ -33,15 +33,6 @@ func (p *protobufLinode) CreateTunnel(args *protoapi.LinodeCreateTunnelRequest) 
 		p.writer.WriteError(p.createCreateTunnelErr(err), err)
 	}
 
-	// Validate parameters.
-	if len(args.Plan) == 0 {
-		err := errors.New("Linode plan is empty or missing")
-		return p.writer.WriteError(p.createCreateTunnelErr(err), err)
-	} else if len(args.Region) == 0 {
-		err := errors.New("Linode region is empty or missing")
-		return p.writer.WriteError(p.createCreateTunnelErr(err), err)
-	}
-
 	// Configure builder.
 	tunnelBuilder := api.NewInstanceBuilder(args.Region, args.Plan)
 	tunnelBuilder.SetLabel(p.instanceLabel)
