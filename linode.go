@@ -21,6 +21,9 @@ type LinodeError struct {
 		Field  string `json:"field"`
 		Reason string `json:"reason"`
 	} `json:"errors"`
+
+	isAuthError        bool
+	isPermissionsError bool
 }
 
 // LinodeInfo contains a description of a single active Linode instance.
@@ -232,14 +235,13 @@ func (e *LinodeAPI) QueryLinode(linodeID int) (*LinodeInfo, error) {
 	result := linodeGET(endpoint, r)
 
 	if result.err != nil {
-		err := errors.Wrapf(result.err, "Error retrieving Linode instance info")
-		return nil, err
+		return nil, result.err
 	}
 
 	if linodeInfo, ok := result.data.(*LinodeInfo); ok {
 		return linodeInfo, nil
 	}
-	return nil, errors.New("Unable to parse response from " + endpoint)
+	return nil, errors.New("unable to decode RPC return value (" + endpoint + ")")
 }
 
 // ListLinodeInstances returns a list of active linodes.
@@ -252,13 +254,12 @@ func (e *LinodeAPI) ListLinodeInstances() ([]LinodeInfo, error) {
 	for {
 		item, hasNext := iter.next()
 		if item.err != nil {
-			err := errors.Wrapf(item.err, "Error retrieving a list of Linode instances")
-			return list, err
+			return list, item.err
 		}
 		if moreItems, ok := item.data.([]LinodeInfo); ok {
 			list = append(list, moreItems...)
 		} else {
-			err := errors.New("Unable to parse response from " + endpoint)
+			err := errors.New("unable to decode RPC return value (" + endpoint + ")")
 			return list, err
 		}
 		if !hasNext {
@@ -278,13 +279,12 @@ func (e *LinodeAPI) ListStackScriptsPrivate() ([]StackScript, error) {
 	for {
 		item, hasNext := iter.next()
 		if item.err != nil {
-			err := errors.Wrapf(item.err, "Error while retrieving StackScripts")
-			return list, err
+			return list, item.err
 		}
 		if moreItems, ok := item.data.([]StackScript); ok {
 			list = append(list, moreItems...)
 		} else {
-			err := errors.New("Unable to parse response from " + endpoint)
+			err := errors.New("unable to decode RPC return value (" + endpoint + ")")
 			return list, err
 		}
 		if !hasNext {
@@ -389,7 +389,13 @@ func (e *LinodeError) Error() string {
 
 // IsAuthError checks whether the error is an authorization error.
 func (e *LinodeError) IsAuthError() bool {
-	return false
+	return e.isAuthError
+}
+
+// IsPermissionsError return true when error was caused by insufficient
+// user permissions.
+func (e *LinodeError) IsPermissionsError() bool {
+	return e.isPermissionsError
 }
 
 func (e *LinodeAPI) unprivR() *resty.Request {

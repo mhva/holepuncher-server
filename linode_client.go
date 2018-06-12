@@ -3,6 +3,8 @@ package main
 import (
 	"strconv"
 
+	"net/http"
+
 	"github.com/pkg/errors"
 	"gopkg.in/resty.v1"
 )
@@ -108,7 +110,13 @@ func linodeSimpleExec(method string, endpoint string, r *resty.Request) apiResul
 		errObject := response.Error()
 		errFormat := "API error (%s '%s'): %s"
 		if errObject != nil {
-			err = errors.Errorf(errFormat, method, endpoint, errObject)
+			if linodeErr, ok := errObject.(*LinodeError); ok {
+				linodeErr.isAuthError = response.StatusCode() == http.StatusUnauthorized
+				linodeErr.isPermissionsError = response.StatusCode() == http.StatusForbidden
+				err = linodeErr
+			} else {
+				err = errors.Errorf(errFormat, method, endpoint, errObject)
+			}
 		} else {
 			err = errors.Errorf(errFormat, method, endpoint, "No error object, details missing")
 		}

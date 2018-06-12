@@ -36,8 +36,14 @@ func (w *protobufHTTPWriter) WriteMessage(m *protoapi.Response) error {
 func (w *protobufHTTPWriter) WriteError(m *protoapi.Response, err error) error {
 	w.writer.Header().Set("Content-Type", "application/octet-stream")
 	w.writer.Header().Set("Cache-Control", "no-cache")
-	if linodeErr, ok := err.(*LinodeError); ok && linodeErr.IsAuthError() {
-		w.writer.WriteHeader(http.StatusUnauthorized)
+	if linodeErr, ok := err.(*LinodeError); ok {
+		if linodeErr.IsAuthError() {
+			w.writer.WriteHeader(http.StatusUnauthorized)
+		} else if linodeErr.IsPermissionsError() {
+			w.writer.WriteHeader(http.StatusForbidden)
+		} else {
+			w.writer.WriteHeader(http.StatusTeapot)
+		}
 	} else {
 		w.writer.WriteHeader(http.StatusTeapot)
 	}
