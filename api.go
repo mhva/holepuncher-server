@@ -94,9 +94,20 @@ func (s *protobufAPIServer) dispatchVerb(v *protoapi.Request, w http.ResponseWri
 }
 
 func (s *protobufAPIServer) logRequest(r *http.Request, msg string) {
-	log.WithFields(log.Fields{
-		"ip":              r.RemoteAddr,
-		"x-forwarded-for": r.Header.Get(http.CanonicalHeaderKey("X-Forwarded-For")),
-		"x-real-ip":       r.Header.Get(http.CanonicalHeaderKey("X-Real-IP")),
-	}).Debug(msg)
+	fields := log.Fields{
+		"ip": r.RemoteAddr,
+	}
+	if h := r.Header.Get("X-Forwarded-For"); len(h) > 0 {
+		fields["x-forwarded-for"] = h
+	}
+	if h := r.Header.Get("X-Real-IP"); len(h) > 0 {
+		fields["x-real-ip"] = h
+	}
+	if h := r.Header.Get("CF-Connecting-IP"); len(h) > 0 {
+		fields["cf-ip"] = h
+	}
+	if h := r.Header.Get("CF-IPCountry"); len(h) > 0 {
+		fields["cf-country"] = h
+	}
+	log.WithFields(fields).Info(msg)
 }
