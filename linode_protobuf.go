@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"protoapi"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -59,17 +58,7 @@ func (p *protobufLinode) CreateTunnel(args *protoapi.LinodeCreateTunnelRequest) 
 		return p.writer.WriteError(p.createCreateTunnelErr(err), err)
 	}
 
-	p.logInstance(instance, "Initiated instance creation. Waiting until it's running...")
-
-	// Await until the instance achieves running state.
-	if latest, awaitErr := p.awaitUntilRunning(api, instance.ID); awaitErr == nil {
-		p.logInstance(latest, "Instance was successfully created")
-		protoInstance := p.linodeInstanceToProtobuf(latest)
-		return p.writer.WriteMessage(p.createCreateTunnelOK(protoInstance))
-	}
-
-	// Await returned an error, we will return old information that we've
-	// received from Create().
+	p.logInstance(instance, "Job to create instance was started successfully")
 	protoInstance := p.linodeInstanceToProtobuf(instance)
 	return p.writer.WriteMessage(p.createCreateTunnelOK(protoInstance))
 }
@@ -104,14 +93,7 @@ func (p *protobufLinode) RebuildTunnel(args *protoapi.LinodeRebuildTunnelRequest
 		return p.writer.WriteError(p.createRebuildTunnelErr(err), err)
 	}
 
-	p.logInstance(instance, "Initiated instance rebuild. Waiting until it's running...")
-	if latest, awaitErr := p.awaitUntilRunning(api, instance.ID); awaitErr == nil {
-		p.logInstance(latest, "Successfully rebuilt instance")
-		protoInstance := p.linodeInstanceToProtobuf(latest)
-		return p.writer.WriteMessage(p.createRebuildTunnelOK(protoInstance))
-	}
-
-	// Return dated info about instance because awaitUntilRunning() has failed.
+	p.logInstance(instance, "Job to rebuild instance was started successfully")
 	protoInstance := p.linodeInstanceToProtobuf(instance)
 	return p.writer.WriteMessage(p.createRebuildTunnelOK(protoInstance))
 }
@@ -247,42 +229,6 @@ func (p *protobufLinode) extractAuth(a *protoapi.LinodeAuth) string {
 		return a.AccessToken
 	}
 	return ""
-}
-
-func (p *protobufLinode) awaitUntilRunning(api *LinodeAPI, instanceID int) (*LinodeInfo, error) {
-	attempt, maxAttempts := 0, 20
-	delay := 7 * time.Second
-
-	// Wait a little, so operations like create or rebuild have chance to do
-	// some work.
-	time.Sleep(delay * 2)
-
-	for {
-		instance, err := api.QueryLinode(instanceID)
-		if err != nil {
-			p.logError(err, "Couldn't retrieve status of Linode instance")
-			return nil, err
-		}
-
-		if instance.Status == LinodeStatusRunning {
-			return instance, nil
-		}
-
-		attempt++
-		if attempt >= maxAttempts {
-			log.WithFields(log.Fields{
-				"id":      instance.ID,
-				"label":   instance.Label,
-				"plan":    instance.Type,
-				"ipv4":    instance.IPv4,
-				"ipv6":    instance.IPv6,
-				"created": instance.CreatedAt,
-				"status":  instance.Status,
-			}).Warn("Instance took too long to come online")
-			return nil, errors.New("Instance took too long to come online")
-		}
-		time.Sleep(delay)
-	}
 }
 
 // makeStackScriptParams produces script parameters, that are usable by either
