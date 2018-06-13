@@ -35,13 +35,13 @@ func (s *protobufAPIServer) handleVerb(w http.ResponseWriter, r *http.Request) {
 	// Decode base64 payload.
 	b64Data := strings.TrimSpace(chi.URLParam(r, "*"))
 	if len(b64Data) == 0 {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		http.Error(w, "empty verb", 400)
 		return
 	}
 	ciphertext, err := base64.RawStdEncoding.DecodeString(b64Data)
 	if err != nil {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		http.Error(w, "verb decode error: "+err.Error(), 400)
 		return
 	}
@@ -50,7 +50,7 @@ func (s *protobufAPIServer) handleVerb(w http.ResponseWriter, r *http.Request) {
 	request := &protoapi.Request{}
 	err = s.proto.ReadMessage(request, ciphertext)
 	if err != nil {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		http.Error(w, "verb decode error: "+err.Error(), 400)
 		return
 	}
